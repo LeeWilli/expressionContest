@@ -48,12 +48,12 @@ python train.py \
 Model download address:
 ---------------------
 
-[model](\\192.168.16.123\Share\emotion_model)
+192.168.16.123/Share/emotion_model 
 
 
 Database download address:
 ---------
-[database](192.168.16.166:/data/zl/EmotionNet)
+192.168.16.166:/data/zl/EmotionNet
 
 Module:
 --------
