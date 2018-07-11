@@ -8,7 +8,7 @@ Requirements:
 Project Structure:
 ------------
 ```tree
-webcam-pulse
+expressionContest
 │  .gitignore
 │  main.py                                             # program main function
 │  README.md
@@ -32,6 +32,29 @@ python main.py\
  --prototxt  "resources/deploy.prototxt.txt"\ # path to Caffe deploy prototxt file
  --model "resources/res10_300x300_ssd_iter_140000.caffemodel" # path to Caffe pre-trained model
 ```
+- run train.py to train the emotion model
+
+```
+python train.py \
+ --num_epochs 200 'Number of training epochs'\
+ --batch_size 428 'Batch size'\
+ --learning_rate 1e-04 'Learning rate'\
+ --train_dataset '/data/zl/AffectNet/Manually_Annotated_Images/face/training/train.tfrecords'\
+ --eval_dataset '/data/zl/AffectNet/Manually_Annotated_Images/face/validation/validation.tfrecords'\
+ --model_dir 'models/emotion_cnn_model'
+
+```
+
+Model download address:
+---------------------
+
+[model](\\192.168.16.123\Share\emotion_model)
+
+
+Database download address:
+---------
+[database](192.168.16.166:/data/zl/EmotionNet)
+
 Module:
 --------
 
