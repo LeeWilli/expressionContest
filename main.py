@@ -1,3 +1,6 @@
+import builtins
+import os
+import sys
 import time
 
 import numpy as np
@@ -23,9 +26,74 @@ EMOTION = [u'neutral', u'happiness', u'surprise', u'sadness', u'anger', u'disgus
 AFFECTNET = [u'neutral', u'happy', u'sad', u'surprise', u'fear', u'disgust', u'anger', u'contempt', u'none',
              u'uncertain', u'non-Face']
 
+if 'builtins' not in dir() or not hasattr(builtins, 'profile'):
+    def profile(func):
+        def inner(*args, **kwargs):
+            return func(*args, **kwargs)
 
-def format_image():
-    pass
+        return inner
+
+
+    builtins.__dict__['profile'] = profile
+
+
+@profile
+def main(args):
+    def resource_path(relative_path):
+        """Convert relative resource path to the real path"""
+        if hasattr(sys, "_MEIPASS"):
+            return os.path.join(sys._MEIPASS, relative_path)
+        return os.path.join(relative_path)
+
+    '''caffe DNN model for face detection'''
+    net = cv2.dnn.readNetFromCaffe(resource_path(args["prototxt"]), resource_path(args["face_model"]))
+
+    '''caffe CascadeClassifier model for face detection'''
+    # net = cv2.CascadeClassifier('models/face/haarcascade_frontalface_alt.xml')
+
+    ''''tflearn emotion model'''
+    # network = EMR()
+    # network.build_network()
+
+    '''keras emotion model'''
+    # network = resnext.ResNextImageNet(include_top=True, input_shape=(64, 64, 1), classes=8)
+    # network.load_s("models/model.h5")
+    network = load_model(resource_path("models/resnet50_final.h5"))
+
+    '''tensorflow emotion model'''
+    # network = predictor_factories.from_saved_model(args["emotion_model_dir"])
+
+    print("[INFO] sampling frames from webcam...")
+    vs = WebcamVideoStream(args["webcam"]).start()
+    fps = FPS().start()
+    heart_rate = None
+    while True:
+        time0 = time.time()
+        frame = vs.read()
+        frame = imutils.resize(frame, width=720)
+        try:
+            face_rect = face_detection.detector(net, frame)
+        except Exception as e:
+            print("face_detection failed to {}".format(str(e)))
+
+        if face_rect is not None:
+            result = emotion_detection.detector1(frame, face_rect, network)
+            cv2.rectangle(frame, (face_rect[0], face_rect[1]), (face_rect[2], face_rect[3]), (0, 255, 0), 2)
+            cv2.putText(frame, "{}".format(EMOTION[np.argmax(result)]), (10, 50),
+                        cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 2)
+            # cv2.imwrite("sdfjdf",frame)
+            if args["display"] > 0:
+                cv2.imshow("Frame", frame)
+                key = cv2.waitKey(5) & 0xFF
+                if key == ord("q"):
+                    break
+        fps.update()
+    fps.stop()
+    print("[INFO] elasped time: {:.2f}".format(fps.elapsed()))
+    print("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
+
+    cv2.destroyAllWindows()
+    vs.stop()
 
 
 if __name__ == '__main__':
@@ -34,6 +102,7 @@ if __name__ == '__main__':
     ap.add_argument("-u", "--webcam",
                     default="rtsp://admin:1234qwer@192.168.16.202/h264/ch1/main/",
                     # default="rtmp://live.hkstv.hk.lxdns.com/live/hks",
+                    # default="rtmp://192.168.16.122:1935/rtmplive/testzz1",
                     # default=0,
                     help="# camera url")
     ap.add_argument("-d", "--display", type=int, default=1,
@@ -49,50 +118,4 @@ if __name__ == '__main__':
                     default="models/emotion/",
                     help="emotion model of dir")
     args = vars(ap.parse_args())
-
-    '''caffe DNN model for face detection'''
-    net = cv2.dnn.readNetFromCaffe(args["prototxt"], args["face_model"])
-
-    '''caffe CascadeClassifier model for face detection'''
-    # net = cv2.CascadeClassifier('models/face/haarcascade_frontalface_alt.xml')
-
-    ''''tflearn emotion model'''
-    # network = EMR()
-    # network.build_network()
-
-    '''keras emotion model'''
-    # network = resnext.ResNextImageNet(include_top=True, input_shape=(64, 64, 1), classes=8)
-    # network.load_s("models/model.h5")
-    network=load_model("models/resnet50_final.h5")
-
-    '''tensorflow emotion model'''
-    # network = predictor_factories.from_saved_model(args["emotion_model_dir"])
-
-    print("[INFO] sampling frames from webcam...")
-    vs = WebcamVideoStream(args["webcam"]).start()
-    fps = FPS().start()
-
-    heart_rate = None
-    while True:
-        time0 = time.time()
-        frame = vs.read()
-        frame = imutils.resize(frame, width=720)
-        face_rect = face_detection.detector(net, frame)
-        if face_rect is not None:
-            result = emotion_detection.detector1(frame, face_rect, network)
-            cv2.rectangle(frame, (face_rect[0], face_rect[1]), (face_rect[2], face_rect[3]), (0, 255, 0), 2)
-            cv2.putText(frame, "{}".format(EMOTION[np.argmax(result)]), (10, 50),
-                        cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 2)
-            if args["display"] > 0:
-                cv2.imshow("Frame", frame)
-                key = cv2.waitKey(1) & 0xFF
-                if key == ord("q"):
-                    break
-            print("time:", time.time() - time0)
-        fps.update()
-    fps.stop()
-    print("[INFO] elasped time: {:.2f}".format(fps.elapsed()))
-    print("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
-
-    cv2.destroyAllWindows()
-    vs.stop()
+    main(args)

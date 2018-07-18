@@ -17,9 +17,13 @@ def detector(net, frame):
     :param frame:frame images obtained from a webcam
     :return:3D-ndarray, face area
     """
-    (h, w) = frame.shape[:2]
-    blob = cv2.dnn.blobFromImage(cv2.resize(frame, (300, 300)), 1.0,
-                                 (300, 300), (104.0, 177.0, 123.0))
+    try:
+        (h, w) = frame.shape[:2]
+        blob = cv2.dnn.blobFromImage(cv2.resize(frame, (300, 300)), 1.0,
+                                    (300, 300), (104.0, 177.0, 123.0))
+    except Exception as e:
+        print("frame or model failed to {}".format(str(e)))
+
     net.setInput(blob)
     detections = net.forward()
     max_face_rect = None
@@ -57,3 +61,5 @@ def detector3(net, frame):
                 max_face_rect = face
                 max_face_area = face_area
         return max_face_rect
+
+

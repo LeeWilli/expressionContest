@@ -1,8 +1,13 @@
+import builtins
+import time
+
 import cv2
 import numpy as np
 
 from utils.rect_util import Rect
 import utils.img_util as imgu
+
+result = np.zeros((1, 8))
 
 
 def load_image(frame_face):
@@ -37,19 +42,28 @@ def detector(frame, face_rect, models):
     :param models:micro expression model
     :return:confidence of 8 kinds of expressions
     '''
+
     frame_face = frame[face_rect[1]:face_rect[3], face_rect[0]:face_rect[2]]
     predictions = models(
         {"x": load_image(frame_face)})
-    return int(predictions["classes"])
+
+    return predictions["probabilities"]
 
 
 def detector1(frame, face_rect, models):
-    frame_face = frame[face_rect[1]:face_rect[3], face_rect[0]:face_rect[2]]
+    try:
+        frame_face = frame[face_rect[1]:face_rect[3], face_rect[0]:face_rect[2]]
+    except Exception as e:
+        print("frame_face failed to {}".format(str(e)))
     # frame_face = cv2.cvtColor(frame_face, cv2.COLOR_BGR2GRAY)
     image = cv2.resize(frame_face, (64, 64))
     image = np.reshape(image, (1, 64, 64, 3))
-    preds = models.predict(image)
-    return preds.tolist()[0]
+    try:
+        preds = models.predict(image)
+    except Exception as e:
+        print("emotion return failed to {}".format(str(e)))
+    result = preds.tolist()[0]
+    return result
 
 
 def detector2(frame, face_rect, network):
@@ -57,3 +71,31 @@ def detector2(frame, face_rect, network):
     image = cv2.resize(frame_face, (49, 49), interpolation=cv2.INTER_CUBIC) / 255.
     result = network.predict(image)
     return result[0][:8]
+
+
+em_dat_buffer = []
+
+
+def em_detection(frame, face_rect, models):
+    ret = np.zeros((1, 8))
+    emotion_data = []
+    global em_dat_buffer
+
+    try:
+        print("detection emotion")
+        result = detector(frame, face_rect, models)
+        print(result)
+        em_dat_buffer.append(result)
+        L = len(em_dat_buffer)
+        print(L)
+        buffer_size = 5
+        if L >= buffer_size:
+            em_dat_buffer = em_dat_buffer[-buffer_size:]
+            L = buffer_size
+        samples = np.array(em_dat_buffer)
+        emotion_data.append(np.mean(samples, axis=0))
+    except Exception as e:
+        print(str(e))
+        return ret
+    ret = emotion_data[0]
+    return ret
