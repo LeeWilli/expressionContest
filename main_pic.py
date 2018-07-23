@@ -72,9 +72,9 @@ if __name__ == '__main__':
     # network.build_network()
 
     '''keras emotion model'''
-    # network = resnext.ResNextImageNet(include_top=True, input_shape=(64, 64, 1), classes=8)
-    # network.load_s("models/model.h5")
-    network = load_model(resource_path("models/resnet50_final.h5"))
+    network = resnext.ResNextImageNet(include_top=True, input_shape=(64, 64, 1), classes=8)
+    network.load_weights("models/resnext_model_84.9.h5")
+    # network = load_model(resource_path("models/resnext_model_84.9.h5"))
 
     '''tensorflow emotion model'''
     # network = predictor_factories.from_saved_model(args["emotion_model_dir"])
@@ -86,12 +86,14 @@ if __name__ == '__main__':
     acc = []
     for lists in os.listdir(root):
         emotion_dir = os.path.join(root, lists)
-        print(emotion_dir)
         right = []
+        print(lists)
         for file in os.listdir(emotion_dir):
             image_path = os.path.join(emotion_dir, file)
             new_name = file.split(".")[0]
-            img = cv2.imread(image_path)
+
+            img = cv2.imread(image_path, 0)  # size (120,120)
+
             # face_rect = face_detection.detector(net, img)
 
             # if face_rect is not None:
@@ -99,15 +101,12 @@ if __name__ == '__main__':
             #     cv2.putText(img, "{}".format(EMOTION[np.argmax(result)]), (10, 50),
             #             cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 2)
             result = emotion_detection.detector1(img, [0, 0, 48, 48], network)
-
-            if emotion_dir == EMOTION[np.argmax(result)]:
+            if int(lists) == np.argmax(result):
                 right.append(1)
             else:
                 right.append(0)
-            cv2.imwrite(os.path.join(result_root, "{}_{}_{}.png".format(EMOTION[np.argmax(emotion_dir)], new_name,
-                                                                          EMOTION[np.argmax(result)])), img)
-
-        print("{} of emotion accuracy is {} %".format(EMOTION[np.argmax(emotion_dir)],sum(right) / len(right)))
-        acc.append(sum(right) / len(right))
-
-
+            cv2.imwrite(os.path.join(result_root, "{}_{}_{}.png".format(EMOTION[int(lists)], new_name,
+                                                                        EMOTION[np.argmax(result)])), img)
+        print("{} of emotion accuracy is {} %".format(EMOTION[int(lists)], sum(right) / len(right)*100))
+        acc.append(sum(right) / len(right)*100)
+    print("emotion accuracy is {} %".format(np.mean(acc)))
